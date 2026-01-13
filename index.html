@@ -3,472 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Master - Autenticação</title>
-    <!-- Tailwind CSS -->
+    <title>Gerenciamento de Conta - QR Master</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-        }
-        /* Animação de carregamento */
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #4f46e5;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            display: none;
-        }
+        body { font-family: 'Outfit', sans-serif; background-color: #0f172a; color: white; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .loader { border: 3px solid rgba(255,255,255,0.1); border-left-color: #4F46E5; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 h-screen overflow-hidden flex flex-col">
+<body class="flex items-center justify-center min-h-screen p-4 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')] bg-cover bg-center">
+    
+    <div class="absolute inset-0 bg-gray-950/80 backdrop-blur-sm"></div>
 
-    <!-- NOTIFICAÇÕES (Toast) -->
-    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2"></div>
-
-    <!-- TELA DE AUTENTICAÇÃO (LOGIN / REGISTRO) -->
-    <div id="auth-screen" class="flex-1 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col md:flex-row relative">
-            
-            <!-- Conteúdo do Formulário -->
-            <div class="w-full p-8 relative z-10">
-                <div class="text-center mb-8">
-                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 mb-4">
-                        <i class="fas fa-qrcode text-xl"></i>
-                    </div>
-                    <h1 class="text-2xl font-bold text-slate-900">QR Master</h1>
-                    <p class="text-slate-500 text-sm mt-1">Gerencie seus códigos com segurança</p>
-                </div>
-
-                <!-- Toggle Login/Cadastro -->
-                <div class="flex bg-slate-100 p-1 rounded-lg mb-6">
-                    <button id="btn-show-login" class="flex-1 py-2 text-sm font-medium rounded-md bg-white shadow-sm text-slate-900 transition-all">Entrar</button>
-                    <button id="btn-show-register" class="flex-1 py-2 text-sm font-medium rounded-md text-slate-500 hover:text-slate-900 transition-all">Criar Conta</button>
-                </div>
-
-                <!-- Formulário de Login -->
-                <form id="login-form" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">E-mail</label>
-                        <input type="email" id="login-email" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="seu@email.com" required>
-                    </div>
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="block text-xs font-semibold text-slate-500 uppercase">Senha</label>
-                            <a href="#" id="link-forgot-password" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Esqueceu a senha?</a>
-                        </div>
-                        <input type="password" id="login-password" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="••••••••" required>
-                    </div>
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2">
-                        <span>Entrar</span>
-                        <div class="loader" id="login-loader"></div>
-                    </button>
-                </form>
-
-                <!-- Formulário de Registro (Inicialmente oculto) -->
-                <form id="register-form" class="space-y-4 hidden">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">E-mail</label>
-                        <input type="email" id="reg-email" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="seu@email.com" required>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Senha</label>
-                        <input type="password" id="reg-password" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Mínimo 6 caracteres" required>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Confirmar Senha</label>
-                        <input type="password" id="reg-confirm-password" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" placeholder="Repita a senha" required>
-                    </div>
-                    <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2">
-                        <span>Criar Conta</span>
-                        <div class="loader" id="reg-loader"></div>
-                    </button>
-                </form>
-            </div>
+    <div class="glass max-w-md w-full p-8 rounded-3xl relative z-10 shadow-2xl">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold mb-1">QR Master</h1>
+            <p id="action-title" class="text-gray-400 text-sm">Gerenciamento de Segurança</p>
         </div>
-    </div>
 
-    <!-- APLICAÇÃO PRINCIPAL (Protegida) -->
-    <div id="app-screen" class="hidden h-full flex flex-col">
-        <!-- Navbar -->
-        <nav class="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center shadow-sm">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
-                    <i class="fas fa-qrcode text-sm"></i>
-                </div>
-                <h1 class="font-bold text-slate-800 text-lg">QR Master</h1>
-            </div>
-            <div class="flex items-center gap-4">
-                <span id="user-display-email" class="text-sm text-slate-600 hidden md:block"></span>
-                <button id="btn-logout" class="text-sm font-medium text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md transition-colors">
-                    Sair
-                </button>
-            </div>
-        </nav>
-
-        <!-- Conteúdo do App -->
-        <main class="flex-1 p-6 overflow-y-auto bg-slate-50 flex items-center justify-center">
-            <div class="text-center max-w-lg">
-                <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-                    <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-check-circle text-2xl"></i>
-                    </div>
-                    <h2 class="text-xl font-bold text-slate-800 mb-2">Bem-vindo ao QR Master!</h2>
-                    <p class="text-slate-600 mb-6">Você está autenticado com segurança. O sistema de recuperação de senha está configurado e pronto para uso.</p>
-                    <div class="bg-slate-100 p-4 rounded-lg text-left text-sm text-slate-700">
-                        <p class="font-semibold mb-2"><i class="fas fa-info-circle mr-1"></i> Status do Sistema:</p>
-                        <ul class="space-y-1 list-disc list-inside">
-                            <li>Autenticação Firebase: <span class="text-green-600 font-bold">Ativa</span></li>
-                            <li>Recuperação de Senha: <span class="text-green-600 font-bold">Ativa</span></li>
-                            <li>Action URL Handler: <span class="text-green-600 font-bold">Pronto</span></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- MODAL: ESQUECI MINHA SENHA (Solicitar Link) -->
-    <div id="forgot-password-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 animate-fade-in-up">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-slate-800">Redefinir Senha</h3>
-                <button id="close-forgot-modal" class="text-slate-400 hover:text-slate-600 transition-colors">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <p class="text-slate-600 text-sm mb-4">Digite seu e-mail abaixo. Enviaremos um link seguro para você criar uma nova senha.</p>
-            <form id="forgot-password-form">
-                <div class="mb-4">
-                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">E-mail da Conta</label>
-                    <input type="email" id="forgot-email" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" placeholder="seu@email.com" required>
-                </div>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2">
-                    <span>Enviar Link de Recuperação</span>
-                    <div class="loader" id="forgot-loader"></div>
-                </button>
-            </form>
+        <!-- Loading State -->
+        <div id="loading" class="flex flex-col items-center py-8">
+            <div class="loader mb-4"></div>
+            <p class="text-gray-400 text-sm">Verificando solicitação...</p>
         </div>
-    </div>
 
-    <!-- MODAL: DEFINIR NOVA SENHA (Aberto via Link do Email) -->
-    <div id="reset-password-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-8 border-2 border-indigo-100">
-            <div class="text-center mb-6">
-                <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 mb-4">
-                    <i class="fas fa-key text-xl"></i>
-                </div>
-                <h3 class="text-xl font-bold text-slate-800">Criar Nova Senha</h3>
-                <p class="text-slate-500 text-sm mt-1">Sua identidade foi verificada. Digite sua nova senha abaixo.</p>
+        <!-- Reset Password Form -->
+        <div id="reset-form" class="hidden space-y-4">
+            <p class="text-sm text-gray-300 text-center mb-4">Crie uma nova senha segura para sua conta.</p>
+            <div>
+                <label class="text-xs font-bold text-gray-500 uppercase">Nova Senha</label>
+                <input type="password" id="new-pass" class="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 mt-1 text-white focus:border-indigo-500 outline-none transition-colors">
             </div>
-            
-            <form id="reset-password-form">
-                <div class="space-y-4 mb-6">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Nova Senha</label>
-                        <input type="password" id="new-password" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Mínimo 6 caracteres" required>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Confirmar Nova Senha</label>
-                        <input type="password" id="confirm-new-password" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Repita a senha" required>
-                    </div>
-                </div>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-lg shadow-indigo-200">
-                    <span>Salvar Nova Senha</span>
-                    <div class="loader" id="reset-loader"></div>
-                </button>
-            </form>
+            <button onclick="handleResetPassword()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all">
+                Salvar Nova Senha
+            </button>
+        </div>
+
+        <!-- Success Message -->
+        <div id="success-msg" class="hidden text-center py-4">
+            <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-green-400 text-3xl">✓</div>
+            <h3 class="text-xl font-bold mb-2">Sucesso!</h3>
+            <p id="success-text" class="text-gray-400 text-sm mb-6">Sua senha foi redefinida com sucesso.</p>
+            <a href="index.html" class="block w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 rounded-xl transition-all">
+                Voltar para o App
+            </a>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-msg" class="hidden text-center py-4">
+            <div class="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 text-red-400 text-3xl">✕</div>
+            <h3 class="text-xl font-bold mb-2">Ops!</h3>
+            <p id="error-text" class="text-gray-400 text-sm mb-6">Link inválido ou expirado.</p>
+            <a href="index.html" class="block w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-3 rounded-xl transition-all">
+                Voltar
+            </a>
         </div>
     </div>
 
     <script type="module">
-        // Importando do CDN oficial do Firebase (Versão Modular)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { 
-            getAuth, 
-            createUserWithEmailAndPassword, 
-            signInWithEmailAndPassword, 
-            onAuthStateChanged, 
-            signOut,
-            sendPasswordResetEmail,
-            confirmPasswordReset,
-            verifyPasswordResetCode
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, verifyPasswordResetCode, confirmPasswordReset, applyActionCode } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // --- 1. CONFIGURAÇÃO (Fornecida pelo usuário) ---
-        const firebaseConfig = {
+        const config = {
             apiKey: "AIzaSyCGvo2a43dsDGBv0K6ELy0yjrPZmbemqVg",
-            authDomain: "qr-master-65489.firebaseapp.com",
-            projectId: "qr-master-65489",
-            storageBucket: "qr-master-65489.firebasestorage.app",
-            messagingSenderId: "303212642438",
-            appId: "1:303212642438:web:65ef833e4ecacd00b21107",
-            measurementId: "G-YB097SJZY1"
+            authDomain: "qr-master-65489.firebaseapp.com"
         };
 
-        // Inicialização
-        const app = initializeApp(firebaseConfig);
+        const app = initializeApp(config);
         const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // --- 2. ELEMENTOS DO DOM ---
-        const authScreen = document.getElementById('auth-screen');
-        const appScreen = document.getElementById('app-screen');
-        const loginForm = document.getElementById('login-form');
-        const registerForm = document.getElementById('register-form');
-        const btnShowLogin = document.getElementById('btn-show-login');
-        const btnShowRegister = document.getElementById('btn-show-register');
-        const userDisplayEmail = document.getElementById('user-display-email');
-        const btnLogout = document.getElementById('btn-logout');
         
-        // Modal Esqueci Senha
-        const linkForgotPassword = document.getElementById('link-forgot-password');
-        const forgotModal = document.getElementById('forgot-password-modal');
-        const closeForgotModal = document.getElementById('close-forgot-modal');
-        const forgotForm = document.getElementById('forgot-password-form');
-        
-        // Modal Redefinir Senha (Action URL)
-        const resetModal = document.getElementById('reset-password-modal');
-        const resetForm = document.getElementById('reset-password-form');
+        // Parâmetros da URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode');
+        const actionCode = urlParams.get('oobCode');
 
-        // --- 3. UI HELPERS ---
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            const colors = type === 'error' 
-                ? 'bg-red-100 border-red-500 text-red-700' 
-                : 'bg-green-100 border-green-500 text-green-700';
-            
-            const icon = type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle';
+        const els = {
+            loading: document.getElementById('loading'),
+            resetForm: document.getElementById('reset-form'),
+            success: document.getElementById('success-msg'),
+            error: document.getElementById('error-msg'),
+            title: document.getElementById('action-title'),
+            successText: document.getElementById('success-text'),
+            errorText: document.getElementById('error-text')
+        };
 
-            toast.className = `${colors} border-l-4 p-4 rounded shadow-lg flex items-center gap-3 min-w-[300px] animate-fade-in-left`;
-            toast.innerHTML = `
-                <i class="fas ${icon}"></i>
-                <span class="font-medium text-sm">${message}</span>
-            `;
+        function show(el) { el.classList.remove('hidden'); }
+        function hide(el) { el.classList.add('hidden'); }
 
-            container.appendChild(toast);
-
-            // Remover após 3 segundos
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        function toggleLoader(id, show) {
-            const loader = document.getElementById(id);
-            if (loader) loader.style.display = show ? 'block' : 'none';
-        }
-
-        // --- 4. FLUXO DE AUTENTICAÇÃO BÁSICO ---
-        
-        // Listener de Estado
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                authScreen.classList.add('hidden');
-                appScreen.classList.remove('hidden');
-                userDisplayEmail.textContent = user.email;
-            } else {
-                authScreen.classList.remove('hidden');
-                appScreen.classList.add('hidden');
-            }
-        });
-
-        // Toggle Forms UI
-        btnShowLogin.addEventListener('click', () => {
-            loginForm.classList.remove('hidden');
-            registerForm.classList.add('hidden');
-            btnShowLogin.classList.add('bg-white', 'shadow-sm', 'text-slate-900');
-            btnShowLogin.classList.remove('text-slate-500');
-            btnShowRegister.classList.remove('bg-white', 'shadow-sm', 'text-slate-900');
-            btnShowRegister.classList.add('text-slate-500');
-        });
-
-        btnShowRegister.addEventListener('click', () => {
-            registerForm.classList.remove('hidden');
-            loginForm.classList.add('hidden');
-            btnShowRegister.classList.add('bg-white', 'shadow-sm', 'text-slate-900');
-            btnShowRegister.classList.remove('text-slate-500');
-            btnShowLogin.classList.remove('bg-white', 'shadow-sm', 'text-slate-900');
-            btnShowLogin.classList.add('text-slate-500');
-        });
-
-        // Login
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            
-            toggleLoader('login-loader', true);
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-                showToast('Login realizado com sucesso!');
-            } catch (error) {
-                console.error(error);
-                let msg = "Erro ao fazer login.";
-                if (error.code === 'auth/invalid-credential') msg = "E-mail ou senha incorretos.";
-                showToast(msg, 'error');
-            } finally {
-                toggleLoader('login-loader', false);
-            }
-        });
-
-        // Registro
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('reg-email').value;
-            const password = document.getElementById('reg-password').value;
-            const confirm = document.getElementById('reg-confirm-password').value;
-
-            if (password !== confirm) {
-                showToast('As senhas não coincidem.', 'error');
+        async function init() {
+            if (!mode || !actionCode) {
+                hide(els.loading);
+                show(els.error);
+                els.errorText.innerText = "Link incompleto.";
                 return;
             }
 
-            toggleLoader('reg-loader', true);
             try {
-                await createUserWithEmailAndPassword(auth, email, password);
-                showToast('Conta criada com sucesso!');
-            } catch (error) {
-                console.error(error);
-                let msg = "Erro ao criar conta.";
-                if (error.code === 'auth/email-already-in-use') msg = "Este e-mail já está em uso.";
-                if (error.code === 'auth/weak-password') msg = "A senha deve ter pelo menos 6 caracteres.";
-                showToast(msg, 'error');
-            } finally {
-                toggleLoader('reg-loader', false);
-            }
-        });
-
-        // Logout
-        btnLogout.addEventListener('click', () => {
-            signOut(auth).then(() => showToast('Você saiu da conta.'));
-        });
-
-        // --- 5. LÓGICA DE RECUPERAÇÃO DE SENHA (O FOCO DO GUIA) ---
-
-        // Abrir Modal
-        linkForgotPassword.addEventListener('click', (e) => {
-            e.preventDefault();
-            forgotModal.classList.remove('hidden');
-        });
-
-        // Fechar Modal
-        closeForgotModal.addEventListener('click', () => {
-            forgotModal.classList.add('hidden');
-        });
-
-        // Enviar E-mail de Recuperação
-        forgotForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('forgot-email').value;
-            
-            toggleLoader('forgot-loader', true);
-
-            try {
-                // Importante: Passamos o objeto auth e o email
-                await sendPasswordResetEmail(auth, email);
-                
-                showToast('E-mail enviado! Verifique sua caixa de entrada.', 'success');
-                forgotModal.classList.add('hidden');
-                document.getElementById('forgot-email').value = ''; // Limpar campo
-                
-            } catch (error) {
-                console.error("Erro ao enviar reset:", error);
-                let msg = "Erro ao enviar e-mail.";
-                if (error.code === 'auth/user-not-found') msg = "Usuário não encontrado.";
-                if (error.code === 'auth/invalid-email') msg = "E-mail inválido.";
-                showToast(msg, 'error');
-            } finally {
-                toggleLoader('forgot-loader', false);
-            }
-        });
-
-        // --- 6. ACTION URL HANDLER (CheckUrlActions) ---
-        // Esta função verifica se a página foi aberta através de um link do e-mail do Firebase
-        
-        async function checkUrlActions() {
-            // Pega os parâmetros da URL (?mode=...&oobCode=...)
-            const urlParams = new URLSearchParams(window.location.search);
-            const mode = urlParams.get('mode');
-            const actionCode = urlParams.get('oobCode');
-
-            if (!mode || !actionCode) return; // Navegação normal, não faz nada
-
-            // O Firebase suporta vários modos (verifyEmail, resetPassword, recoverEmail)
-            if (mode === 'resetPassword') {
-                // 1. Ocultar telas normais para focar na recuperação
-                authScreen.classList.add('hidden');
-                appScreen.classList.add('hidden');
-                
-                // 2. Tentar verificar se o código é válido antes de mostrar o form
-                try {
+                if (mode === 'resetPassword') {
+                    // Verifica o código primeiro
                     const email = await verifyPasswordResetCode(auth, actionCode);
-                    // Se passar aqui, o código é válido. Mostramos o modal.
-                    resetModal.classList.remove('hidden');
-                    
-                    // Configurar o submit do formulário de nova senha
-                    handleNewPasswordSubmit(actionCode);
-                    
-                } catch (error) {
-                    authScreen.classList.remove('hidden'); // Voltar ao login
-                    showToast('O link expirou ou já foi usado.', 'error');
+                    els.title.innerText = `Redefinir senha para ${email}`;
+                    hide(els.loading);
+                    show(els.resetForm);
+                } else if (mode === 'verifyEmail') {
+                    els.title.innerText = "Verificando E-mail";
+                    await applyActionCode(auth, actionCode);
+                    hide(els.loading);
+                    show(els.success);
+                    els.successText.innerText = "Seu e-mail foi verificado com sucesso!";
+                } else {
+                    throw new Error("Ação inválida.");
                 }
+            } catch (e) {
+                hide(els.loading);
+                show(els.error);
+                els.errorText.innerText = "Link expirado ou já utilizado.";
             }
         }
 
-        function handleNewPasswordSubmit(actionCode) {
-            resetForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const newPassword = document.getElementById('new-password').value;
-                const confirmNew = document.getElementById('confirm-new-password').value;
+        window.handleResetPassword = async () => {
+            const newPass = document.getElementById('new-pass').value;
+            if (newPass.length < 6) return alert("A senha deve ter pelo menos 6 caracteres.");
+            
+            hide(els.resetForm);
+            show(els.loading);
 
-                if (newPassword !== confirmNew) {
-                    showToast('As senhas não coincidem.', 'error');
-                    return;
-                }
+            try {
+                await confirmPasswordReset(auth, actionCode, newPass);
+                hide(els.loading);
+                show(els.success);
+            } catch (e) {
+                hide(els.loading);
+                show(els.resetForm);
+                alert("Erro ao salvar senha: " + e.message);
+            }
+        };
 
-                toggleLoader('reset-loader', true);
-
-                try {
-                    // Confirma a troca de senha no Firebase
-                    await confirmPasswordReset(auth, actionCode, newPassword);
-                    
-                    showToast('Senha alterada com sucesso! Faça login.', 'success');
-                    
-                    // Fechar modal e limpar URL
-                    resetModal.classList.add('hidden');
-                    authScreen.classList.remove('hidden');
-                    
-                    // Limpar os parâmetros da URL para evitar loop se der refresh
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                    
-                } catch (error) {
-                    console.error(error);
-                    let msg = "Erro ao redefinir senha.";
-                    if (error.code === 'auth/weak-password') msg = "A senha é muito fraca.";
-                    showToast(msg, 'error');
-                } finally {
-                    toggleLoader('reset-loader', false);
-                }
-            });
-        }
-
-        // Executar a verificação ao carregar a página
-        window.addEventListener('DOMContentLoaded', checkUrlActions);
-
+        init();
     </script>
 </body>
 </html>
