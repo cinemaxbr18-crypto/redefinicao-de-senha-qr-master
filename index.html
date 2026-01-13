@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinição de Senha</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, verifyPasswordResetCode, confirmPasswordReset } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // CONFIGURAÇÃO DO FIREBASE
+        // Substitua pelo seu objeto de configuração real do Firebase Console
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_PROJETO.firebaseapp.com",
+            projectId: "SEU_PROJETO",
+            storageBucket: "SEU_PROJETO.firebasestorage.app",
+            messagingSenderId: "SEU_MESSAGING_ID",
+            appId: "SEU_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // VARIÁVEIS GLOBAIS
+        let currentOobCode = null;
+
+        // ELEMENTOS DO DOM
+        const modal = document.getElementById('resetPasswordModal');
+        const emailDisplay = document.getElementById('userEmailDisplay');
+        const newPasswordInput = document.getElementById('newPassword');
+        const saveButton = document.getElementById('savePasswordBtn');
+        const messageContainer = document.getElementById('messageContainer');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const mainContent = document.getElementById('mainContent');
+
+        /**
+         * Função principal que verifica a URL ao carregar a página.
+         * Procura por ?mode=resetPassword&oobCode=...
+         */
+        async function checkUrlActions() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mode = urlParams.get('mode');
+            const oobCode = urlParams.get('oobCode');
+
+            console.log("Verificando URL...", { mode, oobCodePresent: !!oobCode });
+
+            if (mode === 'resetPassword' && oobCode) {
+                // Oculta conteúdo principal para focar na ação
+                mainContent.classList.add('opacity-50', 'pointer-events-none');
+                
+                handleResetPassword(oobCode);
+            } else {
+                console.log("Nenhum código de redefinição encontrado na URL.");
+            }
+        }
+
+        /**
+         * Lida com a lógica de validar o código e abrir o modal
+         */
+        async function handleResetPassword(code) {
+            currentOobCode = code;
+            showLoading(true);
+
+            try {
+                // 1. Verifica se o código é válido e recupera o email do usuário
+                const email = await verifyPasswordResetCode(auth, code);
+                
+                // 2. Mostra o email no modal e abre o modal
+                emailDisplay.textContent = email;
+                showLoading(false);
+                openModal();
+                
+            } catch (error) {
+                showLoading(false);
+                showMessage(`Erro: O link é inválido ou expirou. Detalhes: ${error.message}`, 'error');
+                console.error("Erro ao verificar código:", error);
+            }
+        }
+
+        /**
+         * Função para confirmar a mudança de senha
+         */
+        async function saveNewPassword() {
+            const newPassword = newPasswordInput.value;
+
+            if (newPassword.length < 6) {
+                showMessage("A senha deve ter pelo menos 6 caracteres.", 'error');
+                return;
+            }
+
+            if (!currentOobCode) {
+                showMessage("Código de verificação perdido. Tente clicar no link do email novamente.", 'error');
+                return;
+            }
+
+            setButtonLoading(true);
+
+            try {
+                // Confirma a alteração no Firebase
+                await confirmPasswordReset(auth, currentOobCode, newPassword);
+                
+                setButtonLoading(false);
+                showMessage("Senha alterada com sucesso! Você pode fazer login agora.", 'success');
+                
+                // Limpa o formulário e fecha após 2 segundos
+                setTimeout(() => {
+                    closeModal();
+                    // Opcional: Redirecionar para página de login
+                    // window.location.href = 'login.html';
+                }, 3000);
+
+            } catch (error) {
+                setButtonLoading(false);
+                showMessage(`Erro ao salvar senha: ${error.message}`, 'error');
+            }
+        }
+
+        // --- FUNÇÕES DE UI ---
+
+        function openModal() {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            mainContent.classList.remove('opacity-50', 'pointer-events-none');
+            // Limpa parâmetros da URL para evitar reabrir ao atualizar
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        function showMessage(msg, type) {
+            messageContainer.textContent = msg;
+            messageContainer.className = `mt-4 p-3 rounded text-sm text-center ${
+                type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+            }`;
+            messageContainer.classList.remove('hidden');
+        }
+
+        function showLoading(isLoading) {
+            if (isLoading) {
+                loadingSpinner.classList.remove('hidden');
+            } else {
+                loadingSpinner.classList.add('hidden');
+            }
+        }
+
+        function setButtonLoading(isLoading) {
+            if (isLoading) {
+                saveButton.disabled = true;
+                saveButton.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Salvando...';
+            } else {
+                saveButton.disabled = false;
+                saveButton.textContent = 'Salvar Nova Senha';
+            }
+        }
+
+        // Event Listeners
+        saveButton.addEventListener('click', saveNewPassword);
+        
+        // Iniciar verificação ao carregar
+        window.addEventListener('DOMContentLoaded', checkUrlActions);
+
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-gray-800">
+
+    <!-- Conteúdo Principal (Apenas Ilustrativo) -->
+    <div id="mainContent" class="p-8 transition-opacity duration-300">
+        <nav class="flex justify-between items-center mb-10">
+            <h1 class="text-2xl font-bold text-indigo-600">Meu App</h1>
+            <div>
+                <a href="#" class="text-gray-600 hover:text-indigo-600 mx-2">Login</a>
+                <a href="#" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Cadastro</a>
+            </div>
+        </nav>
+        
+        <div class="max-w-2xl mx-auto text-center mt-20">
+            <h2 class="text-4xl font-extrabold mb-4">Bem-vindo ao Sistema</h2>
+            <p class="text-gray-600 mb-8">Esta é a página inicial. Se você clicou em um link de "Esqueci minha senha" no email, o modal de redefinição aparecerá automaticamente.</p>
+        </div>
+    </div>
+
+    <!-- Spinner de Carregamento Geral (Full Screen) -->
+    <div id="loadingSpinner" class="hidden fixed inset-0 bg-white bg-opacity-80 z-50 flex items-center justify-center">
+        <div class="flex flex-col items-center">
+            <i class="fas fa-spinner fa-spin text-4xl text-indigo-600 mb-4"></i>
+            <p class="text-gray-600 font-medium">Verificando link de segurança...</p>
+        </div>
+    </div>
+
+    <!-- Modal de Redefinição de Senha -->
+    <div id="resetPasswordModal" class="hidden fixed inset-0 z-40 bg-gray-900 bg-opacity-50 items-center justify-center overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6 relative animate-fade-in-up">
+            
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-key text-2xl text-indigo-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900">Definir Nova Senha</h3>
+                <p class="text-sm text-gray-500 mt-2">
+                    Para a conta: <span id="userEmailDisplay" class="font-semibold text-gray-700">carregando...</span>
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">Nova Senha</label>
+                    <input type="password" id="newPassword" placeholder="Digite sua nova senha" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                </div>
+
+                <button id="savePasswordBtn" 
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center">
+                    Salvar Nova Senha
+                </button>
+            </div>
+
+            <!-- Área de Mensagens (Sucesso/Erro) -->
+            <div id="messageContainer" class="hidden"></div>
+
+        </div>
+    </div>
+
+    <style>
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up {
+            animation: fade-in-up 0.3s ease-out;
+        }
+    </style>
+</body>
+</html>
